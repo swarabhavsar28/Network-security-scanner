@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus SIEM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/logo.jpg" type="image/jpeg">
+</head>
+<body class="bg-[#0a0a0a] text-slate-300 font-sans antialiased flex h-screen overflow-hidden" style="font-family:'Inter',sans-serif">
+
+    <!-- Sidebar -->
+    <aside class="w-60 border-r border-white/[0.06] bg-[#111111] flex-col hidden md:flex z-20 shrink-0">
+        <!-- Logo -->
+        <div class="h-16 flex items-center px-5 border-b border-white/[0.06] shrink-0">
+            <img src="/static/logo.jpg" alt="Nexus SIEM" class="w-8 h-8 rounded-lg mr-3 object-cover shadow-[0_0_15px_rgba(79,70,229,0.5)]">
+            <span class="text-white font-semibold tracking-wide text-sm">Nexus <span class="text-slate-500 font-normal">SIEM</span></span>
+        </div>
+
+        <!-- Nav -->
+        <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
+            <p class="px-3 text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2">Analytics</p>
+            <a href="#" class="nav-link flex items-center px-3 py-2 text-sm rounded-md transition-colors active" data-view="dashboard">
+                <i class="fa-solid fa-chart-line w-5 text-center mr-2.5 text-sm"></i> Dashboard
+            </a>
+            <a href="#" class="nav-link flex items-center px-3 py-2 text-sm rounded-md transition-colors" data-view="incidents">
+                <i class="fa-solid fa-bolt w-5 text-center mr-2.5 text-sm"></i> Incidents
+                <span id="incidentBadge" class="ml-auto bg-rose-500/20 text-rose-400 text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+            </a>
+            <a href="#" class="nav-link flex items-center px-3 py-2 text-sm rounded-md transition-colors" data-view="rawlogs">
+                <i class="fa-solid fa-list-ul w-5 text-center mr-2.5 text-sm"></i> Raw Logs
+            </a>
+
+            <p class="px-3 text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2 mt-6">Configuration</p>
+            <a href="#" class="nav-link flex items-center px-3 py-2 text-sm rounded-md transition-colors" data-view="datasources">
+                <i class="fa-solid fa-network-wired w-5 text-center mr-2.5 text-sm"></i> Data Sources
+            </a>
+            <a href="#" class="nav-link flex items-center px-3 py-2 text-sm rounded-md transition-colors" data-view="settings">
+                <i class="fa-solid fa-gear w-5 text-center mr-2.5 text-sm"></i> Settings
+            </a>
+        </nav>
+
+        <!-- User -->
+        <div class="p-4 border-t border-white/[0.06] flex items-center hover:bg-white/[0.03] cursor-pointer transition-colors">
+            <img src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff" class="w-8 h-8 rounded-full mr-3 border border-white/10">
+            <div class="text-xs truncate">
+                <p class="text-white font-medium truncate">Administrator</p>
+                <p class="text-slate-500 truncate">admin@nexus.local</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main View -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 border-b border-white/[0.06] bg-[#0a0a0a]/95 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-10">
+            <div class="flex items-center flex-1">
+                <div class="relative w-full max-w-sm hidden sm:block">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                    <input type="text" id="globalSearch" placeholder="Search IPs, events, threats..." class="w-full bg-[#171717] border border-white/[0.06] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all">
+                </div>
+            </div>
+            <div class="flex items-center gap-4 pl-4">
+                <button class="text-slate-500 hover:text-white transition-colors relative">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="notifDot" class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
+                </button>
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="relative flex h-1.5 w-1.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    Live
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Main Content -->
+        <main class="flex-1 overflow-y-auto bg-[#0a0a0a]">
+
+            <!-- ===== DASHBOARD VIEW ===== -->
+            <div id="view-dashboard" class="view p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl font-semibold text-white tracking-tight">Security Overview</h1>
+                        <p class="text-sm text-slate-500 mt-0.5">Upload a log file or enable live monitoring.</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-[#171717] p-1.5 rounded-xl border border-white/[0.06]">
+                        <button type="button" id="liveModeBtn" class="text-sm text-slate-400 py-1.5 px-3 rounded-lg transition-colors flex items-center relative hover:bg-white/[0.05]">
+                            <span class="mr-2 w-1.5 h-1.5 rounded-full bg-slate-600 transition-all" id="liveIndicator"></span>
+                            <i class="fa-solid fa-satellite-dish mr-1.5 text-slate-500 text-xs"></i> Live Mode
+                        </button>
+                        <div class="w-px h-5 bg-white/[0.06]"></div>
+                        <form id="uploadForm" class="flex items-center gap-2">
+                            <input type="file" id="csvFile" accept=".csv" required class="hidden" />
+                            <label for="csvFile" class="cursor-pointer hover:bg-white/[0.05] text-sm text-slate-400 py-1.5 px-3 rounded-lg transition-colors flex items-center">
+                                <i class="fa-solid fa-paperclip mr-1.5 text-slate-600 text-xs"></i>
+                                <span id="fileName">Select File</span>
+                            </label>
+                            <button type="submit" id="analyzeBtn" class="bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white py-1.5 px-4 rounded-lg transition-colors flex items-center">
+                                <i class="fa-solid fa-play mr-1.5 text-xs"></i> Ingest
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="loading" class="hidden py-20 text-center">
+                    <i class="fa-solid fa-circle-notch fa-spin text-xl text-indigo-500 mb-3 block"></i>
+                    <p class="text-sm text-slate-500">Processing telemetry...</p>
+                </div>
+                <div id="error" class="hidden bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-lg text-sm flex items-start">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5 mr-2"></i><span id="errorText"></span>
+                </div>
+
+                <div id="dashboardContent" class="hidden space-y-6 animate-fade-in">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="stat-card bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs text-slate-500 font-medium mb-3 flex items-center justify-between">Total Events <i class="fa-solid fa-server text-slate-700"></i></p>
+                            <p class="text-3xl font-semibold text-white tracking-tight" id="statTotalLogs">0</p>
+                        </div>
+                        <div class="stat-card bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs text-slate-500 font-medium mb-3 flex items-center justify-between">Anomalies <i class="fa-solid fa-bolt text-rose-500/30"></i></p>
+                            <p class="text-3xl font-semibold text-rose-500 tracking-tight" id="statTotalAnomalies">0</p>
+                        </div>
+                        <div class="stat-card bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs text-slate-500 font-medium mb-3 flex items-center justify-between">Risk Level <i class="fa-solid fa-shield text-slate-700"></i></p>
+                            <p class="text-3xl font-semibold tracking-tight" id="statThreatLevel">—</p>
+                        </div>
+                        <div class="stat-card bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs text-slate-500 font-medium mb-3 flex items-center justify-between">Data Source <i class="fa-solid fa-database text-slate-700"></i></p>
+                            <p class="text-base font-medium text-white tracking-tight truncate" id="logTypeHeader">—</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <div class="lg:col-span-2 bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">Top Offending Sources</p>
+                            <div class="h-56"><canvas id="topIpsBarChart"></canvas></div>
+                        </div>
+                        <div class="bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">Threat Distribution</p>
+                            <div class="h-56 flex items-center justify-center"><canvas id="anomalyPieChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Recent events preview (top 5) -->
+                    <div class="bg-[#171717] border border-white/[0.06] rounded-xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                            <p class="text-sm font-medium text-white">Recent Events</p>
+                            <button onclick="navigate('incidents')" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">View all →</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm border-collapse">
+                                <thead><tr class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-white/[0.04] bg-black/20">
+                                    <th class="px-5 py-3 text-left">Time</th>
+                                    <th class="px-5 py-3 text-left">Source</th>
+                                    <th class="px-5 py-3 text-left">Classification</th>
+                                    <th class="px-5 py-3 text-left">Details</th>
+                                </tr></thead>
+                                <tbody id="recentEventsBody" class="divide-y divide-white/[0.03] text-slate-400"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== INCIDENTS VIEW ===== -->
+            <div id="view-incidents" class="view hidden p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+                <div>
+                    <h1 class="text-xl font-semibold text-white tracking-tight">Incidents</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">All flagged anomalies from the latest analysis.</p>
+                </div>
+                <div id="incidentsEmpty" class="py-20 text-center text-slate-600">
+                    <i class="fa-solid fa-shield-check text-4xl mb-3 block"></i>
+                    <p class="text-sm">No incidents yet. Run an analysis from Dashboard first.</p>
+                </div>
+                <div id="incidentsTable" class="hidden bg-[#171717] border border-white/[0.06] rounded-xl overflow-hidden">
+                    <!-- Filter bar -->
+                    <div class="px-5 py-3 border-b border-white/[0.06] flex items-center gap-3">
+                        <div class="flex gap-2" id="filterBtns">
+                            <button onclick="filterIncidents('all')" class="filter-btn active text-xs px-3 py-1.5 rounded-lg transition-colors" data-filter="all">All</button>
+                            <button onclick="filterIncidents('critical')" class="filter-btn text-xs px-3 py-1.5 rounded-lg transition-colors" data-filter="critical">Critical</button>
+                            <button onclick="filterIncidents('warning')" class="filter-btn text-xs px-3 py-1.5 rounded-lg transition-colors" data-filter="warning">Warning</button>
+                            <button onclick="filterIncidents('info')" class="filter-btn text-xs px-3 py-1.5 rounded-lg transition-colors" data-filter="info">Info</button>
+                        </div>
+                        <div class="ml-auto text-xs text-slate-500"><span id="incidentCount">0</span> incidents</div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse">
+                            <thead><tr class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-white/[0.04] bg-black/20">
+                                <th class="px-5 py-3 text-left">Severity</th>
+                                <th class="px-5 py-3 text-left">Time</th>
+                                <th class="px-5 py-3 text-left">Source IP</th>
+                                <th class="px-5 py-3 text-left">Target</th>
+                                <th class="px-5 py-3 text-left">Port</th>
+                                <th class="px-5 py-3 text-left">Type</th>
+                                <th class="px-5 py-3 text-left">Details</th>
+                            </tr></thead>
+                            <tbody id="incidentsBody" class="divide-y divide-white/[0.03] text-slate-400"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== RAW LOGS VIEW ===== -->
+            <div id="view-rawlogs" class="view hidden p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+                <div>
+                    <h1 class="text-xl font-semibold text-white tracking-tight">Raw Logs</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Complete unfiltered event stream. Use search to filter.</p>
+                </div>
+                <div id="rawEmpty" class="py-20 text-center text-slate-600">
+                    <i class="fa-solid fa-terminal text-4xl mb-3 block"></i>
+                    <p class="text-sm">No data yet. Ingest a log file from the Dashboard.</p>
+                </div>
+                <div id="rawTable" class="hidden bg-[#171717] border border-white/[0.06] rounded-xl overflow-hidden">
+                    <div class="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                        <div class="relative">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                            <input type="text" id="rawSearch" placeholder="Filter by IP or type..." class="bg-black/30 border border-white/[0.06] rounded-lg pl-8 pr-4 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 w-64 placeholder-slate-600">
+                        </div>
+                        <span id="rawCount" class="text-xs text-slate-500">0 events</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs border-collapse font-mono">
+                            <thead><tr class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-white/[0.04] bg-black/20" style="font-family:Inter,sans-serif">
+                                <th class="px-5 py-3 text-left">Time</th>
+                                <th class="px-5 py-3 text-left">Source</th>
+                                <th class="px-5 py-3 text-left">Target</th>
+                                <th class="px-5 py-3 text-left">Port</th>
+                                <th class="px-5 py-3 text-left">Classification</th>
+                                <th class="px-5 py-3 text-left">Details</th>
+                            </tr></thead>
+                            <tbody id="rawBody" class="divide-y divide-white/[0.03] text-slate-400"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== DATA SOURCES VIEW ===== -->
+            <div id="view-datasources" class="view hidden p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+                <div>
+                    <h1 class="text-xl font-semibold text-white tracking-tight">Data Sources</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Supported ingestion formats and live API endpoint details.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4"><i class="fa-solid fa-network-wired text-blue-400 text-sm"></i></div>
+                        <h3 class="text-sm font-medium text-white mb-1">Network Traffic</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">Detects DDoS spikes, blacklisted IPs, and unusual port usage.</p>
+                        <div class="text-[10px] font-mono text-slate-600 bg-black/30 p-3 rounded-lg border border-white/[0.04] leading-relaxed">
+                            timestamp, source_ip,<br>destination_ip,<br>destination_port,<br>bytes_transferred
+                        </div>
+                    </div>
+                    <div class="bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4"><i class="fa-solid fa-globe text-purple-400 text-sm"></i></div>
+                        <h3 class="text-sm font-medium text-white mb-1">Web Server Logs</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">Detects SQL injection, XSS payloads, and directory brute-forcing.</p>
+                        <div class="text-[10px] font-mono text-slate-600 bg-black/30 p-3 rounded-lg border border-white/[0.04] leading-relaxed">
+                            timestamp, client_ip,<br>method, url,<br>status_code
+                        </div>
+                    </div>
+                    <div class="bg-[#171717] border border-white/[0.06] rounded-xl p-5">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4"><i class="fa-solid fa-lock text-amber-400 text-sm"></i></div>
+                        <h3 class="text-sm font-medium text-white mb-1">Authentication Logs</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">Detects brute force attacks and admin account compromise attempts.</p>
+                        <div class="text-[10px] font-mono text-slate-600 bg-black/30 p-3 rounded-lg border border-white/[0.04] leading-relaxed">
+                            timestamp, user,<br>ip_address, action,<br>status
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Ingestion API -->
+                <div class="bg-[#171717] border border-white/[0.06] rounded-xl p-6">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><i class="fa-solid fa-plug text-emerald-400 text-sm"></i></div>
+                        <div>
+                            <h3 class="text-sm font-medium text-white">Live Ingestion API</h3>
+                            <p class="text-xs text-slate-500">Send logs in real-time from any server</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Push a single log event</p>
+                            <pre class="text-[11px] font-mono bg-black/40 text-emerald-400 p-4 rounded-lg border border-white/[0.04] overflow-x-auto leading-relaxed">curl -X POST http://&lt;your-server&gt;:8000/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": "2026-09-19T04:00:00",
+    "client_ip": "1.2.3.4",
+    "method": "GET",
+    "url": "/admin",
+    "status_code": 403
+  }'</pre>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Nginx integration (one-liner)</p>
+                            <pre class="text-[11px] font-mono bg-black/40 text-sky-400 p-4 rounded-lg border border-white/[0.04] overflow-x-auto leading-relaxed">tail -F /var/log/nginx/access.log | \
+  python3 simulate_live_server.py</pre>
+                            <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Python SDK snippet</p>
+                            <pre class="text-[11px] font-mono bg-black/40 text-purple-400 p-4 rounded-lg border border-white/[0.04] overflow-x-auto leading-relaxed">import requests
+requests.post(
+  "http://localhost:8000/api/ingest",
+  json={"timestamp": ..., "client_ip": ...}
+)</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SETTINGS VIEW ===== -->
+            <div id="view-settings" class="view hidden p-6 lg:p-8 max-w-[900px] mx-auto space-y-6">
+                <div>
+                    <h1 class="text-xl font-semibold text-white tracking-tight">Settings</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Configure detection rules and thresholds.</p>
+                </div>
+
+                <!-- Blacklisted IPs -->
+                <div class="bg-[#171717] border border-white/[0.06] rounded-xl divide-y divide-white/[0.06]">
+                    <div class="p-5">
+                        <h3 class="text-sm font-medium text-white mb-0.5">Blacklisted IPs</h3>
+                        <p class="text-xs text-slate-500">These IPs will always trigger a critical alert when seen in logs.</p>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex flex-wrap gap-2 mb-4" id="blacklistDisplay">
+                            <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs px-3 py-1 rounded-full font-mono">192.168.1.100</span>
+                            <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs px-3 py-1 rounded-full font-mono">10.0.0.55</span>
+                        </div>
+                        <p class="text-xs text-slate-600">To modify, edit the <span class="font-mono text-slate-500">BLACKLISTED_IPS</span> set in <span class="font-mono text-slate-500">analyzer.py</span>.</p>
+                    </div>
+                </div>
+
+                <!-- Thresholds -->
+                <div class="bg-[#171717] border border-white/[0.06] rounded-xl divide-y divide-white/[0.06]">
+                    <div class="p-5">
+                        <h3 class="text-sm font-medium text-white mb-0.5">Detection Thresholds</h3>
+                        <p class="text-xs text-slate-500">Rules used to flag suspicious behaviour.</p>
+                    </div>
+                    <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-black/20 rounded-lg p-4 border border-white/[0.04]">
+                            <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Network Spike</p>
+                            <p class="text-2xl font-semibold text-white font-mono">50</p>
+                            <p class="text-xs text-slate-600 mt-1">requests / source IP</p>
+                        </div>
+                        <div class="bg-black/20 rounded-lg p-4 border border-white/[0.04]">
+                            <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Brute Force</p>
+                            <p class="text-2xl font-semibold text-white font-mono">5</p>
+                            <p class="text-xs text-slate-600 mt-1">failed logins / IP</p>
+                        </div>
+                        <div class="bg-black/20 rounded-lg p-4 border border-white/[0.04]">
+                            <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Dir Brute Force</p>
+                            <p class="text-2xl font-semibold text-white font-mono">20</p>
+                            <p class="text-xs text-slate-600 mt-1">404s / source IP</p>
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <p class="text-xs text-slate-600">Edit thresholds directly in <span class="font-mono text-slate-500">analyzer.py</span> and restart the server.</p>
+                    </div>
+                </div>
+
+                <!-- Common Ports -->
+                <div class="bg-[#171717] border border-white/[0.06] rounded-xl divide-y divide-white/[0.06]">
+                    <div class="p-5">
+                        <h3 class="text-sm font-medium text-white mb-0.5">Allowed Ports Whitelist</h3>
+                        <p class="text-xs text-slate-500">Traffic to any port NOT in this list is flagged as suspicious.</p>
+                    </div>
+                    <div class="p-5 flex flex-wrap gap-2">
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-mono">:80 HTTP</span>
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-mono">:443 HTTPS</span>
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-mono">:22 SSH</span>
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-mono">:21 FTP</span>
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-mono">:53 DNS</span>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+/* Sidebar nav active / hover */
+.nav-link { color: #71717a; }
+.nav-link:hover { background: rgba(255,255,255,0.04); color: #e4e4e7; }
+.nav-link.active { background: rgba(255,255,255,0.07); color: #ffffff; }
+.nav-link.active i { color: #818cf8; }
+
+/* Filter buttons */
+.filter-btn { color: #71717a; background: transparent; }
+.filter-btn:hover { background: rgba(255,255,255,0.05); color: #e4e4e7; }
+.filter-btn.active { background: rgba(99,102,241,0.15); color: #818cf8; }
+
+/* Stat card hover */
+.stat-card { transition: border-color 0.2s; }
+.stat-card:hover { border-color: rgba(255,255,255,0.12); }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+canvas { max-height: 100%; }
