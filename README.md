@@ -179,14 +179,6 @@ The script will continuously generate realistic web traffic (both normal and mal
 
 ---
 
-## 📋 Resume Description
-
-> **Nexus SIEM** — Full-Stack Security Dashboard (Python / FastAPI / JavaScript)
->
-> Built a real-time Security Information and Event Management (SIEM) system capable of ingesting and analyzing network traffic, web server, and authentication logs. Implemented a rule-based threat detection engine in Python (Pandas) that identifies SQL Injection, XSS, DDoS attacks, brute-force attempts, and blacklisted IP communication. Designed a responsive single-page application (SPA) frontend with live API polling (2s refresh), interactive Chart.js visualizations, multi-view navigation, and dynamic event filtering. Exposed a REST ingestion endpoint allowing any web server to push logs in real-time.
-
----
-
 ## ⚡ Future Roadmap
 
 - [ ] ML-based anomaly detection (Isolation Forest)
@@ -197,5 +189,3 @@ The script will continuously generate realistic web traffic (both normal and mal
 - [ ] Docker + docker-compose deployment
 
 ---
-
-<p align="center">Built with ❤️ using FastAPI + Pandas + Chart.js</p>
